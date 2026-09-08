@@ -1,0 +1,41 @@
+## .NET / Visual Studio
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+
+## MSIX / packaging
+AppPackages/
+BundleArtifacts/
+*.appx
+*.appxbundle
+*.appxupload
+*.msix
+*.msixbundle
+*.msixupload
+*.cer
+*.pfx
+
+## WiX installer build output
+Interrogon.Installer/staging/
+*.msi
+*.wixpdb
+
+## LiteDB local data
+*.db
+*.db-journal
+*.litedb
+
+## OS
+Thumbs.db
+.DS_Store
+
+## Logs
+*.log
+
+## ImportData/ is tracked as a folder (see IMPORT_INSTRUCTIONS.md), but its
+## contents are personal/session-specific and shouldn't be committed.
+ImportData/*
+!ImportData/.gitkeep

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Interrogon.App.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Interrogon.App.ViewModels">
+
+    <Grid>
+        <Grid.Resources>
+            <DataTemplate x:Key="SettingsRowTemplate" x:DataType="vm:SettingsListItemViewModel">
+                <Grid Padding="10,8" ColumnSpacing="10" Tag="{x:Bind}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{x:Bind Name}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{x:Bind QuestionCount}" Opacity="0.6" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Button Grid.Column="2" Background="Transparent" BorderThickness="0" Padding="6" Tag="{x:Bind}" Click="RenameItem_Click" ToolTipService.ToolTip="Rename">
+                        <FontIcon Glyph="&#xE70F;" FontSize="14" />
+                    </Button>
+                    <Button Grid.Column="3" Background="Transparent" BorderThickness="0" Padding="6" Tag="{x:Bind}" Click="DeleteItem_Click" ToolTipService.ToolTip="Delete">
+                        <FontIcon Glyph="&#xE74D;" FontSize="14" />
+                    </Button>
+                </Grid>
+            </DataTemplate>
+        </Grid.Resources>
+
+        <Pivot Title="Settings" Margin="16">
+            <PivotItem Header="Categories">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,8" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="NewCategoryBox" Grid.Column="0" PlaceholderText="New category..." />
+                        <Button Grid.Column="1" Content="Add" Click="AddCategory_Click" />
+                    </Grid>
+                    <ListView x:Name="CategoriesListView" Grid.Row="1" SelectionMode="None" ItemTemplate="{StaticResource SettingsRowTemplate}" />
+                </Grid>
+            </PivotItem>
+
+            <PivotItem Header="Tags">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,8" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="NewTagBox" Grid.Column="0" PlaceholderText="New tag..." />
+                        <Button Grid.Column="1" Content="Add" Click="AddTag_Click" />
+                    </Grid>
+                    <ListView x:Name="TagsListView" Grid.Row="1" SelectionMode="None" ItemTemplate="{StaticResource SettingsRowTemplate}" />
+                </Grid>
+            </PivotItem>
+
+            <PivotItem Header="Logs">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Logs" Style="{ThemeResource TitleTextBlockStyle}" />
+                    <TextBlock Text="Interrogon writes a rolling log file for diagnostics and troubleshooting."
+                               TextWrapping="Wrap"
+                               Opacity="0.7"
+                               Style="{ThemeResource BodyTextBlockStyle}" />
+
+                    <Border Padding="12"
+                            CornerRadius="6"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                        <StackPanel Spacing="10">
+                            <Button Content="Open Log Folder"
+                                    HorizontalAlignment="Left"
+                                    Click="OpenLogFolderButton_Click" />
+                            <TextBlock x:Name="LogFolderPathText"
+                                       IsTextSelectionEnabled="True"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.7"
+                                       Style="{ThemeResource CaptionTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</Window>

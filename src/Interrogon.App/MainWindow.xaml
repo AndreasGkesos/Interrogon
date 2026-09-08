@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Interrogon.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Interrogon.App.Controls"
+    xmlns:converters="using:Interrogon.App.Converters"
+    xmlns:vm="using:Interrogon.App.ViewModels">
+
+    <Grid>
+        <Grid.Resources>
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+
+            <DataTemplate x:Key="TypeTileTemplate" x:DataType="vm:TypeTileViewModel">
+                <Button Width="260" Height="160" Margin="10" Click="TypeTile_Click" Tag="{x:Bind}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="32" HorizontalAlignment="Center" />
+                        <TextBlock Text="{x:Bind Label}" Style="{ThemeResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
+                        <TextBlock Text="{x:Bind Count}" Opacity="0.7" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </DataTemplate>
+
+            <DataTemplate x:Key="CategoryTileTemplate" x:DataType="vm:CategoryTileViewModel">
+                <Button Width="260" Height="140" Margin="10" Click="CategoryTile_Click" Tag="{x:Bind}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                        <TextBlock Text="{x:Bind Name}" Style="{ThemeResource BodyStrongTextBlockStyle}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
+                        <TextBlock Text="{x:Bind Count}" Opacity="0.7" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </DataTemplate>
+
+            <DataTemplate x:Key="QuestionRowTemplate" x:DataType="vm:QuestionListItemViewModel">
+                <Grid Padding="12,10" ColumnSpacing="10" Tapped="QuestionRow_Tapped" Tag="{x:Bind}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="{x:Bind TypeLabel}" Opacity="0.7" VerticalAlignment="Center" MinWidth="120" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{x:Bind CategoryChips}" FontWeight="SemiBold" Opacity="0.75" FontSize="12" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{x:Bind TagChipsWithSeparator}" Opacity="0.55" FontSize="12" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </StackPanel>
+                    <Button Grid.Column="2" Background="Transparent" BorderThickness="0" Padding="6" Click="FavoriteToggle_Click" Tag="{x:Bind Question}" ToolTipService.ToolTip="Toggle favorite">
+                        <FontIcon Glyph="{x:Bind FavoriteGlyph}" FontSize="14" />
+                    </Button>
+                    <Button Grid.Column="3" Background="Transparent" BorderThickness="0" Padding="6" Click="EditQuestionRow_Click" Tag="{x:Bind Question}" ToolTipService.ToolTip="Edit">
+                        <FontIcon Glyph="&#xE70F;" FontSize="14" />
+                    </Button>
+                </Grid>
+            </DataTemplate>
+
+            <DataTemplate x:Key="TagChoiceTemplate" x:DataType="vm:TagChoiceViewModel">
+                <CheckBox Content="{x:Bind Name}" IsChecked="{x:Bind IsSelected, Mode=TwoWay}" Margin="0,2" />
+            </DataTemplate>
+
+            <DataTemplate x:Key="TagFacetChoiceTemplate" x:DataType="vm:TagChoiceViewModel">
+                <CheckBox Content="{x:Bind DisplayText}" IsChecked="{x:Bind IsSelected, Mode=TwoWay}" Margin="0,2" />
+            </DataTemplate>
+        </Grid.Resources>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="32" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Custom title bar -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0">
+            <TextBlock Text="Interrogon"
+                       Style="{ThemeResource CaptionTextBlockStyle}"
+                       VerticalAlignment="Center"
+                       Margin="16,0,0,0"
+                       Opacity="0.8" />
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Grid Grid.Column="0" Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="8,12,8,0" Spacing="2">
+                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,8" Click="AllQuestionsButton_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE71D;" FontSize="14" />
+                            <TextBlock Text="All Questions" />
+                        </StackPanel>
+                    </Button>
+                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,8" Click="FavoritesButton_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE734;" FontSize="14" />
+                            <TextBlock Text="Favorites" />
+                        </StackPanel>
+                    </Button>
+                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,8" Click="RecentlyViewedButton_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE81C;" FontSize="14" />
+                            <TextBlock Text="Recently Viewed" />
+                        </StackPanel>
+                    </Button>
+                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,8" Click="AddQuestionButton_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE710;" FontSize="14" />
+                            <TextBlock Text="Add question" />
+                        </StackPanel>
+                    </Button>
+                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,8" Click="SearchButton_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE721;" FontSize="14" />
+                            <TextBlock Text="Search" />
+                        </StackPanel>
+                    </Button>
+
+                    <TextBlock Text="Tags" Margin="10,16,0,4" Style="{ThemeResource CaptionTextBlockStyle}" Opacity="0.7" />
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" Margin="8,0">
+                    <ItemsControl x:Name="TagFacetItemsControl" ItemTemplate="{StaticResource TagFacetChoiceTemplate}" />
+                </ScrollViewer>
+
+                <Button Grid.Row="2"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Margin="8,0,8,8"
+                        Padding="10,8"
+                        Click="SettingsButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <FontIcon Glyph="&#xE713;" FontSize="14" />
+                        <TextBlock Text="Settings" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Main content -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Watermark -->
+                <FontIcon Grid.Row="0" Grid.RowSpan="2"
+                          Glyph="&#xE8F2;"
+                          FontSize="360"
+                          Opacity="0.04"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          IsHitTestVisible="False" />
+
+                <!-- Breadcrumb -->
+                <StackPanel x:Name="BreadcrumbPanel" Grid.Row="0" Orientation="Horizontal" Margin="16,12,16,8" Visibility="Collapsed">
+                    <Button x:Name="BreadcrumbRootButton" Background="Transparent" BorderThickness="0" Padding="4,2" Content="All Questions" Click="BreadcrumbRoot_Click" />
+                    <TextBlock x:Name="BreadcrumbTypeSeparator" Text=" > " VerticalAlignment="Center" Opacity="0.6" Visibility="Collapsed" />
+                    <Button x:Name="BreadcrumbTypeButton" Background="Transparent" BorderThickness="0" Padding="4,2" Click="BreadcrumbType_Click" Visibility="Collapsed" />
+                    <TextBlock x:Name="BreadcrumbCategorySeparator" Text=" > " VerticalAlignment="Center" Opacity="0.6" Visibility="Collapsed" />
+                    <TextBlock x:Name="BreadcrumbCategoryText" VerticalAlignment="Center" Visibility="Collapsed" />
+                </StackPanel>
+
+                <!-- Center pane -->
+                <Grid Grid.Row="1">
+                    <ScrollViewer x:Name="TypeTilesScrollViewer" Visibility="Collapsed">
+                        <ItemsControl x:Name="TypeTilesItemsControl" Margin="16" ItemTemplate="{StaticResource TypeTileTemplate}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsWrapGrid Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <ScrollViewer x:Name="CategoryTilesScrollViewer" Visibility="Collapsed">
+                        <ItemsControl x:Name="CategoryTilesItemsControl" Margin="16" ItemTemplate="{StaticResource CategoryTileTemplate}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsWrapGrid Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <ScrollViewer x:Name="QuestionListScrollViewer" Visibility="Collapsed">
+                        <ItemsControl x:Name="QuestionListItemsControl" Margin="8" ItemTemplate="{StaticResource QuestionRowTemplate}" />
+                    </ScrollViewer>
+
+                    <!-- Detail overlay -->
+                    <Grid x:Name="DetailOverlay" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Padding="16,12" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Click="CloseDetail_Click">
+                                <FontIcon Glyph="&#xE72B;" FontSize="14" />
+                            </Button>
+                            <TextBlock x:Name="DetailTitleText" Grid.Column="1" Style="{ThemeResource SubtitleTextBlockStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                                <Button Click="DetailFavoriteToggle_Click" ToolTipService.ToolTip="Toggle favorite">
+                                    <FontIcon x:Name="DetailFavoriteIcon" FontSize="14" />
+                                </Button>
+                                <Button Click="DecreaseFontSize_Click" ToolTipService.ToolTip="Decrease text size">
+                                    <FontIcon Glyph="&#xE71F;" FontSize="14" />
+                                </Button>
+                                <Button Click="IncreaseFontSize_Click" ToolTipService.ToolTip="Increase text size">
+                                    <FontIcon Glyph="&#xE71E;" FontSize="14" />
+                                </Button>
+                                <Button Content="Copy Question" Click="CopyQuestion_Click" />
+                                <Button Content="Copy Answer" Click="CopyAnswer_Click" />
+                                <Button x:Name="NotesButton" Content="Notes" Click="ToggleNotes_Click" />
+                                <Button Content="Edit" Click="EditDetail_Click" />
+                                <Button Content="Delete" Click="DeleteDetail_Click" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition x:Name="NotesColumn" Width="0" />
+                            </Grid.ColumnDefinitions>
+
+                            <ScrollViewer Grid.Column="0" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <TextBlock x:Name="DetailTagsText" Opacity="0.7" TextWrapping="Wrap" Visibility="Collapsed" />
+                                    <Border BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" />
+                                    <controls:MarkdownRenderControl x:Name="DetailAnswerMarkdown" />
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <Grid x:Name="NotesPanel" Grid.Column="1" Background="{ThemeResource LayerFillColorDefaultBrush}" Visibility="Collapsed">
+                                <ScrollViewer Padding="16">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="Notes" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                        <controls:MarkdownRenderControl x:Name="DetailNotesMarkdown" />
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+
+                    <!-- Edit form overlay -->
+                    <Grid x:Name="EditOverlay" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" Visibility="Collapsed">
+                        <ScrollViewer Padding="24">
+                            <StackPanel Spacing="12" HorizontalAlignment="Stretch">
+                                <TextBlock x:Name="EditFormHeaderText" Text="Add Question" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                                <Grid ColumnSpacing="24">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Main content -->
+                                    <StackPanel Grid.Column="0" Spacing="12">
+                                        <TextBox x:Name="EditTitleBox" Header="Title" AcceptsReturn="True" TextWrapping="Wrap" />
+
+                                        <ComboBox x:Name="EditTypeComboBox" Header="Type" HorizontalAlignment="Stretch" />
+
+                                        <TextBox x:Name="EditAnswerBox" Header="Answer (markdown, fenced code blocks supported)" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="320" FontFamily="Cascadia Mono, Consolas, monospace" />
+
+                                        <TextBox x:Name="EditNotesBox" Header="Notes (optional)" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" Margin="0,8,0,0" />
+                                    </StackPanel>
+
+                                    <!-- Categories / Tags -->
+                                    <StackPanel Grid.Column="1" Spacing="10">
+                                        <TextBlock Text="Categories" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                        <Border BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" MaxHeight="220">
+                                            <ScrollViewer VerticalScrollBarVisibility="Visible" VerticalScrollMode="Auto" Padding="8">
+                                                <ItemsControl x:Name="EditCategoryChoicesItemsControl" ItemTemplate="{StaticResource TagChoiceTemplate}" />
+                                            </ScrollViewer>
+                                        </Border>
+                                        <Grid ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="EditNewCategoryBox" Grid.Column="0" PlaceholderText="New category..." />
+                                            <Button Grid.Column="1" Content="+ Add" Click="AddNewCategory_Click" />
+                                        </Grid>
+
+                                        <TextBlock Text="Tags" Style="{ThemeResource BodyStrongTextBlockStyle}" Margin="0,4,0,0" />
+                                        <Border BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" MaxHeight="220">
+                                            <ScrollViewer VerticalScrollBarVisibility="Visible" VerticalScrollMode="Auto" Padding="8">
+                                                <ItemsControl x:Name="EditTagChoicesItemsControl" ItemTemplate="{StaticResource TagChoiceTemplate}" />
+                                            </ScrollViewer>
+                                        </Border>
+                                        <Grid ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="EditNewTagBox" Grid.Column="0" PlaceholderText="New tag..." />
+                                            <Button Grid.Column="1" Content="+ Add" Click="AddNewTag_Click" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,16,0,0">
+                                    <Button Content="Save" Click="SaveEdit_Click" Style="{ThemeResource AccentButtonStyle}" />
+                                    <Button Content="Cancel" Click="CancelEdit_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

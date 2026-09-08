@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Interrogon.App.Controls.SearchDialogContent"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Interrogon.App.ViewModels"
+    Width="640"
+    Height="480">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="SearchResultTemplate" x:DataType="vm:QuestionListItemViewModel">
+            <Button HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="10,8"
+                    Tag="{x:Bind}"
+                    Click="ResultButton_Click">
+                <StackPanel Spacing="2">
+                    <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{x:Bind TypeLabel}" Opacity="0.7" Style="{ThemeResource CaptionTextBlockStyle}" />
+                        <TextBlock Text="{x:Bind CategoryChips}" FontWeight="SemiBold" Opacity="0.75" Style="{ThemeResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{x:Bind TagChipsWithSeparator}" Opacity="0.55" Style="{ThemeResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid RowSpacing="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBox x:Name="QueryTextBox"
+                 Grid.Row="0"
+                 PlaceholderText="Search all questions..."
+                 TextChanged="QueryTextBox_TextChanged"
+                 PreviewKeyDown="QueryTextBox_PreviewKeyDown" />
+
+        <ToggleSwitch x:Name="ExactMatchToggle"
+                      Grid.Row="1"
+                      Header="Exact match"
+                      OnContent=""
+                      OffContent=""
+                      HorizontalAlignment="Left"
+                      Toggled="ExactMatchToggle_Toggled" />
+
+        <Grid Grid.Row="2">
+            <TextBlock x:Name="EmptyStateText"
+                       Text="Start typing to search across every question."
+                       Opacity="0.6"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Top"
+                       Margin="0,24,0,0" />
+
+            <ScrollViewer x:Name="ResultsScrollViewer"
+                          Visibility="Collapsed"
+                          VerticalScrollBarVisibility="Visible"
+                          VerticalScrollMode="Auto">
+                <ItemsControl x:Name="ResultsItemsControl" ItemTemplate="{StaticResource SearchResultTemplate}" />
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>
