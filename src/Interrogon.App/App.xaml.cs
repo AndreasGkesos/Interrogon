@@ -159,6 +159,7 @@ public partial class App : Application
         services.AddSingleton<IQuestionRepository, QuestionRepository>();
         services.AddSingleton<ICategoryRepository, CategoryRepository>();
         services.AddSingleton<ITagRepository, TagRepository>();
+        services.AddSingleton<IRoadmapRepository, RoadmapRepository>();
 
         services.AddTransient<MainViewModel>();
         services.AddTransient<SettingsViewModel>();

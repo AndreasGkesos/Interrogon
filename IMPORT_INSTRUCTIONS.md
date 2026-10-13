@@ -136,3 +136,41 @@ Keep entries concise. This report exists to be skimmed and acted on quickly, not
 - Don't create a new Category/Tag without first checking for a reasonable existing match.
 - Don't add anything that isn't a genuine question-and-answer (or question-and-code) pair just to avoid leaving source content unused.
 - Don't guess at which LiteDB file to write to. Confirm the target path first.
+
+---
+
+## Roadmaps
+
+*(This section is separate from question import above: give it to the agent only when building or changing roadmaps.)*
+
+Roadmaps are ordered study paths through questions that are already in the database. They are built and maintained by an agent, never in the app UI. The app shows them under **Roadmaps** in the sidebar and records "studied" ticks per roadmap.
+
+### Data shape
+
+- **`roadmaps` collection** — one document per roadmap: `_id` (`Guid`), `Name` (string), `Description` (string), `Steps` (`BsonArray` of documents `{ QuestionId: Guid, Stage: string? }`).
+- **`roadmap_progress` collection** — written by the app, never by the agent: `_id`, `RoadmapId`, `QuestionId`, `StudiedAt`. Do not touch it when editing roadmaps; ticks are matched by `QuestionId`, so they survive every edit below.
+- Steps reference questions by `_id`, never by title. Resolve titles to ids when building a step; if a title matches zero or several questions, stop and report it rather than guessing. (Stored titles can contain line breaks, so compare with whitespace normalized.)
+
+### The order is decided and kept
+
+- A roadmap's order is a deliberate decision made with the user, not something derived from level, tag, or title. It is stored as the order of the `Steps` array; a step's position is its index + 1. The app displays it exactly as stored.
+- `Stage` is optional. A divider is shown wherever it changes between consecutive steps, so each stage's steps must be contiguous.
+
+### Creating a roadmap
+
+Creating a brand-new roadmap is the only time the whole `Steps` list is written in one go. Agree the order and stages with the user first, resolve every title to exactly one question, then insert the document. Never create a second roadmap with a name that already exists.
+
+### Changing an existing roadmap
+
+Never replace the whole list of an existing roadmap. Use only these operations, **one at a time**, agreeing each position with the user first:
+
+1. **Insert** a question at position N — everything from N onward shifts down by one (a plain array insert at index N-1). Give it a `Stage`: by default the stage of its neighbours, confirmed with the user.
+2. **Remove** a question — the steps after it shift up by one. Leave `roadmap_progress` alone.
+3. **Move** a question to position N — remove then insert, as one edit.
+
+After each edit, show the user the steps around the change and the resulting positions before moving to the next one.
+
+### Backup first
+
+Before the first write of a roadmap session, copy the database file to a timestamped sibling (e.g. `interrogon.db.bak-yyyyMMdd-HHmmss`), exactly as for question imports, and confirm the app is closed. One backup per session is enough; do not make one per edit.
+

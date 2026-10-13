@@ -40,6 +40,8 @@ public sealed partial class MainWindow : Window
         CategoryTilesItemsControl.ItemsSource = ViewModel.CategoryTiles;
         QuestionListItemsControl.ItemsSource = ViewModel.QuestionList;
         TagFacetItemsControl.ItemsSource = ViewModel.VisibleTagFacetChoices;
+        RoadmapListItemsControl.ItemsSource = ViewModel.RoadmapTiles;
+        RoadmapStepsListView.ItemsSource = ViewModel.RoadmapSteps;
 
         EditTypeComboBox.ItemsSource = QuestionTypeDisplay.All.Select(QuestionTypeDisplay.GetLabel).ToList();
 
@@ -84,6 +86,12 @@ public sealed partial class MainWindow : Window
         TypeTilesScrollViewer.Visibility = ViewModel.ShowTypeTiles ? Visibility.Visible : Visibility.Collapsed;
         CategoryTilesScrollViewer.Visibility = ViewModel.ShowCategoryTiles ? Visibility.Visible : Visibility.Collapsed;
         QuestionListScrollViewer.Visibility = ViewModel.ShowQuestionList ? Visibility.Visible : Visibility.Collapsed;
+
+        RoadmapListScrollViewer.Visibility = ViewModel.ShowRoadmapList ? Visibility.Visible : Visibility.Collapsed;
+        RoadmapEmptyText.Visibility = ViewModel.RoadmapTiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        RoadmapDetailGrid.Visibility = ViewModel.ShowRoadmapDetail ? Visibility.Visible : Visibility.Collapsed;
+        RoadmapTitleText.Text = ViewModel.SelectedRoadmap?.Name ?? string.Empty;
+        RoadmapProgressText.Text = ViewModel.SelectedRoadmapProgressText;
 
         BreadcrumbPanel.Visibility = ViewModel.ShowBreadcrumb ? Visibility.Visible : Visibility.Collapsed;
         if (ViewModel.ShowBreadcrumb)
@@ -154,6 +162,8 @@ public sealed partial class MainWindow : Window
     private void FavoritesButton_Click(object sender, RoutedEventArgs e) => ViewModel.ShowFavoritesCommand.Execute(null);
     private void RecentlyViewedButton_Click(object sender, RoutedEventArgs e) => ViewModel.ShowRecentlyViewedCommand.Execute(null);
 
+    private void RoadmapsButton_Click(object sender, RoutedEventArgs e) => ViewModel.ShowRoadmapsCommand.Execute(null);
+
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
         if (_settingsWindow is null)
@@ -216,6 +226,29 @@ public sealed partial class MainWindow : Window
         if (sender is Button { Tag: CategoryTileViewModel tile })
         {
             ViewModel.SelectCategoryCommand.Execute(tile);
+        }
+    }
+
+    // --- Roadmaps ---
+
+    private void RoadmapRow_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: RoadmapTileViewModel tile })
+        {
+            ViewModel.OpenRoadmapCommand.Execute(tile);
+        }
+    }
+
+    private void BackToRoadmaps_Click(object sender, RoutedEventArgs e) => ViewModel.BackToRoadmapsCommand.Execute(null);
+
+    // Taps on the studied toggle (or its padding) must not bubble up to the row and open the question.
+    private void StudiedToggle_Tapped(object sender, TappedRoutedEventArgs e) => e.Handled = true;
+
+    private void RoadmapStepRow_Tapped(object sender, TappedRoutedEventArgs e)
+    {
+        if (sender is Grid { Tag: RoadmapStepViewModel step })
+        {
+            ViewModel.OpenRoadmapQuestionCommand.Execute(step);
         }
     }
 

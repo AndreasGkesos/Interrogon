@@ -57,6 +57,70 @@
                 </Grid>
             </DataTemplate>
 
+            <DataTemplate x:Key="RoadmapRowTemplate" x:DataType="vm:RoadmapTileViewModel">
+                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,0,0,8" Padding="16,12" Click="RoadmapRow_Click" Tag="{x:Bind}">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="{x:Bind Name}" Style="{ThemeResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind Description}" Opacity="0.7" FontSize="12" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                            <TextBlock Text="{x:Bind ProgressText, Mode=OneWay}" Opacity="0.8" />
+                        </StackPanel>
+                    </Grid>
+                </Button>
+            </DataTemplate>
+
+            <DataTemplate x:Key="RoadmapStepRowTemplate" x:DataType="vm:RoadmapStepViewModel">
+                <StackPanel>
+                    <TextBlock Text="{x:Bind StageHeader}"
+                               Visibility="{x:Bind HasStageHeader}"
+                               Style="{ThemeResource BodyStrongTextBlockStyle}"
+                               Margin="12,18,0,4"
+                               Opacity="0.85" />
+                    <Grid Padding="12,10" ColumnSpacing="10" Background="Transparent" Tapped="RoadmapStepRow_Tapped" Tag="{x:Bind}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="{x:Bind Position}" Opacity="0.55" VerticalAlignment="Center" MinWidth="28" TextAlignment="Right" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                            <TextBlock Text="{x:Bind CategoryChips}" Opacity="0.65" FontSize="12" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="{x:Bind LevelLabel}" Opacity="0.7" VerticalAlignment="Center" />
+
+                        <!-- Studied toggle: its own divided column; Tapped is handled here so toggling never opens the question. -->
+                        <Border Grid.Column="3"
+                                Margin="6,-4,0,-4"
+                                Padding="16,0,8,0"
+                                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                BorderThickness="1,0,0,0"
+                                Background="Transparent"
+                                Tapped="StudiedToggle_Tapped">
+                            <CheckBox MinWidth="0"
+                                      Padding="0"
+                                      VerticalAlignment="Center"
+                                      IsChecked="{x:Bind IsStudied, Mode=TwoWay}"
+                                      ToolTipService.ToolTip="Mark as studied in this roadmap" />
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </DataTemplate>
+
+            <Style x:Key="RoadmapStepListViewItemStyle" TargetType="ListViewItem">
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+
             <DataTemplate x:Key="TagChoiceTemplate" x:DataType="vm:TagChoiceViewModel">
                 <CheckBox Content="{x:Bind Name}" IsChecked="{x:Bind IsSelected, Mode=TwoWay}" Margin="0,2" />
             </DataTemplate>
@@ -117,6 +181,12 @@
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <FontIcon Glyph="&#xE81C;" FontSize="14" />
                             <TextBlock Text="Recently Viewed" />
+                        </StackPanel>
+                    </Button>
+                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,8" Click="RoadmapsButton_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE81E;" FontSize="14" />
+                            <TextBlock Text="Roadmaps" />
                         </StackPanel>
                     </Button>
                     <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,8" Click="AddQuestionButton_Click">
@@ -212,6 +282,47 @@
                     <ScrollViewer x:Name="QuestionListScrollViewer" Visibility="Collapsed">
                         <ItemsControl x:Name="QuestionListItemsControl" Margin="8" ItemTemplate="{StaticResource QuestionRowTemplate}" />
                     </ScrollViewer>
+
+                    <!-- Roadmap list -->
+                    <ScrollViewer x:Name="RoadmapListScrollViewer" Visibility="Collapsed">
+                        <StackPanel Margin="16" Spacing="4">
+                            <TextBlock Text="Roadmaps" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,0,0,12" />
+                            <TextBlock x:Name="RoadmapEmptyText"
+                                       Text="No roadmaps yet. Roadmaps are built and imported by an AI agent - see IMPORT_INSTRUCTIONS.md."
+                                       Opacity="0.7"
+                                       TextWrapping="Wrap"
+                                       Visibility="Collapsed" />
+                            <ItemsControl x:Name="RoadmapListItemsControl" ItemTemplate="{StaticResource RoadmapRowTemplate}" />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Opened roadmap -->
+                    <Grid x:Name="RoadmapDetailGrid" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Padding="16,12" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Click="BackToRoadmaps_Click" ToolTipService.ToolTip="Back to roadmaps">
+                                <FontIcon Glyph="&#xE72B;" FontSize="14" />
+                            </Button>
+                            <TextBlock x:Name="RoadmapTitleText" Grid.Column="1" Style="{ThemeResource SubtitleTextBlockStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="RoadmapProgressText" Grid.Column="2" Opacity="0.8" VerticalAlignment="Center" />
+                        </Grid>
+
+                        <ListView x:Name="RoadmapStepsListView"
+                                  Grid.Row="1"
+                                  Margin="8,0"
+                                  SelectionMode="None"
+                                  ItemTemplate="{StaticResource RoadmapStepRowTemplate}"
+                                  ItemContainerStyle="{StaticResource RoadmapStepListViewItemStyle}" />
+                    </Grid>
 
                     <!-- Detail overlay -->
                     <Grid x:Name="DetailOverlay" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" Visibility="Collapsed">

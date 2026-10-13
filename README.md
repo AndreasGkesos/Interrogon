@@ -16,6 +16,7 @@ It's a learning/portfolio project, not a finished product.
 | Question detail view | Full markdown rendering with syntax-highlighted, copyable code blocks; adjustable text size (two zoom steps up from default); tags shown under the title; a Notes side panel for private annotations separate from the answer |
 | Favorites & Recently Viewed | Star any question to pin it in Favorites; every opened question is tracked in Recently Viewed automatically |
 | Add / Edit question | Two-column form — title, type, answer (markdown), and notes on one side, scrollable category/tag checklists on the other; new categories/tags are added directly into the checklist (checked by default, but can be unchecked) rather than force-included; at least one category is required, since categories are how questions stay reachable when browsing |
+| Roadmaps | A read-only **Roadmaps** screen in the sidebar lists the study paths; opening one shows its questions in a fixed, hand-decided order (with stage dividers where the roadmap has stages). Each question row has a "studied" checkbox that is tracked **per roadmap**, so a question can be studied in one roadmap and not another. See [Roadmaps](#roadmaps) below |
 | Settings | Rename or delete categories and tags outside the edit flow; deleting a category is blocked if it would leave any question with zero categories (rather than silently creating an unreachable question) |
 | Bulk import via AI agent | No in-app bulk-import UI by design — `IMPORT_INSTRUCTIONS.md` at the repo root documents a process for handing source material (docs, notes, transcripts) to an AI coding agent, which extracts individual questions, assigns Type/Category/Tags, checks for duplicates, and writes directly to the LiteDB file |
 | Diagnostics | Unhandled errors are caught, logged, and shown as a dialog with an Open Log Folder action instead of silently crashing; a rolling log file (30-day retention) also lives at `%LOCALAPPDATA%\Interrogon\Logs`, reachable from the Settings screen |
@@ -71,6 +72,15 @@ cd Interrogon
 ### Importing questions in bulk
 
 The app has no bulk-import screen — for loading many questions at once from notes, transcripts, or documents, see [`IMPORT_INSTRUCTIONS.md`](IMPORT_INSTRUCTIONS.md). Drop source material into `ImportData/`, hand an AI coding agent the instructions in that file, and it extracts questions, assigns Type/Category/Tags, checks for duplicates against what's already in the database, and writes a report of what it did.
+
+### Roadmaps
+
+A roadmap is an ordered study path through questions that already exist in the database (for example "TheoryQA SQL" or "Name the smell / principle"). Like questions, roadmaps are **constructed and imported by an AI agent**, not created or edited in the app. The app only shows them and records which steps you have studied.
+
+- **The order is decided, and the app keeps it.** Each roadmap's order was chosen deliberately (by level, by pipeline stage, or by concept) and is stored exactly as decided. The app never re-sorts by level, tag, or title.
+- **Stages.** A step can carry an optional stage label (e.g. `A1`, `Stage 3: Embeddings`); the app draws a divider wherever it changes.
+- **Studied is per roadmap.** Progress is stored separately from both the question and the roadmap, so editing a roadmap never loses progress and the same question tracks independently in each roadmap it belongs to.
+- **Changing a roadmap** is done one question at a time by the agent — insert at a position (later steps shift down), remove, or move — never by replacing the whole list, and always after taking a database backup. The rules are in [`IMPORT_INSTRUCTIONS.md`](IMPORT_INSTRUCTIONS.md#roadmaps).
 
 ### Building the installer
 

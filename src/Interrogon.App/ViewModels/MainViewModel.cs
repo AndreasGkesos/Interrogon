@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Interrogon.Core;
@@ -11,7 +12,8 @@ public enum SidebarView
 {
     AllQuestions,
     Favorites,
-    RecentlyViewed
+    RecentlyViewed,
+    Roadmaps
 }
 
 public enum DrillLevel
@@ -26,10 +28,18 @@ public partial class MainViewModel : ObservableObject
     private readonly IQuestionRepository _questionRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly ITagRepository _tagRepository;
+    private readonly IRoadmapRepository _roadmapRepository;
 
     private List<Question> _allQuestions = [];
     private List<Category> _allCategories = [];
     private List<Tag> _allTags = [];
+    private List<Roadmap> _allRoadmaps = [];
+
+    /// <summary>(RoadmapId, QuestionId) pairs marked studied. Independent per roadmap.</summary>
+    private HashSet<(Guid RoadmapId, Guid QuestionId)> _studied = [];
+
+    // Level tags look like Alg_A1, TQA_B2, CR_C1, SD_B1.
+    private static readonly Regex LevelTagPattern = new(@"^[A-Za-z]+_[ABC][12]$", RegexOptions.Compiled);
 
     /// <summary>
     /// The drill level the user was actually at (via tile clicks) before a tag selection
@@ -64,6 +74,12 @@ public partial class MainViewModel : ObservableObject
     private Question? _selectedQuestion;
 
     [ObservableProperty]
+    private RoadmapTileViewModel? _selectedRoadmap;
+
+    [ObservableProperty]
+    private string _selectedRoadmapProgressText = string.Empty;
+
+    [ObservableProperty]
     private bool _isNotesOpen;
 
     [ObservableProperty]
@@ -76,6 +92,8 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<CategoryTileViewModel> CategoryTiles { get; } = [];
     public ObservableCollection<QuestionListItemViewModel> QuestionList { get; } = [];
     public ObservableCollection<TagChoiceViewModel> TagFacetChoices { get; } = [];
+    public ObservableCollection<RoadmapTileViewModel> RoadmapTiles { get; } = [];
+    public ObservableCollection<RoadmapStepViewModel> RoadmapSteps { get; } = [];
 
     /// <summary>
     /// The subset of <see cref="TagFacetChoices"/> whose name matches <see cref="TagSearchText"/>; this is
@@ -85,7 +103,10 @@ public partial class MainViewModel : ObservableObject
 
     public bool ShowTypeTiles => DrillLevel == DrillLevel.Types && CurrentSidebarView == SidebarView.AllQuestions;
     public bool ShowCategoryTiles => DrillLevel == DrillLevel.Categories && CurrentSidebarView == SidebarView.AllQuestions;
-    public bool ShowQuestionList => DrillLevel == DrillLevel.Questions || CurrentSidebarView != SidebarView.AllQuestions;
+    public bool ShowQuestionList => CurrentSidebarView != SidebarView.Roadmaps
+        && (DrillLevel == DrillLevel.Questions || CurrentSidebarView != SidebarView.AllQuestions);
+    public bool ShowRoadmapList => CurrentSidebarView == SidebarView.Roadmaps && SelectedRoadmap is null;
+    public bool ShowRoadmapDetail => CurrentSidebarView == SidebarView.Roadmaps && SelectedRoadmap is not null;
     public bool ShowBreadcrumb => CurrentSidebarView == SidebarView.AllQuestions && DrillLevel != DrillLevel.Types && SelectedQuestion is null;
 
     public string BreadcrumbText => SelectedType is { } type
@@ -94,11 +115,16 @@ public partial class MainViewModel : ObservableObject
             : $"All Questions > {QuestionTypeDisplay.GetLabel(type)} > {SelectedCategoryName}")
         : "All Questions";
 
-    public MainViewModel(IQuestionRepository questionRepository, ICategoryRepository categoryRepository, ITagRepository tagRepository)
+    public MainViewModel(
+        IQuestionRepository questionRepository,
+        ICategoryRepository categoryRepository,
+        ITagRepository tagRepository,
+        IRoadmapRepository roadmapRepository)
     {
         _questionRepository = questionRepository;
         _categoryRepository = categoryRepository;
         _tagRepository = tagRepository;
+        _roadmapRepository = roadmapRepository;
     }
 
     public async Task InitializeAsync()
@@ -111,8 +137,13 @@ public partial class MainViewModel : ObservableObject
         _allQuestions = (await _questionRepository.GetAllAsync()).ToList();
         _allCategories = (await _categoryRepository.GetAllAsync()).ToList();
         _allTags = (await _tagRepository.GetAllAsync()).ToList();
+        _allRoadmaps = (await _roadmapRepository.GetAllAsync()).ToList();
+        _studied = (await _roadmapRepository.GetAllProgressAsync())
+            .Select(p => (p.RoadmapId, p.QuestionId))
+            .ToHashSet();
 
         RebuildTypeTiles();
+        RebuildRoadmaps();
         RebuildTagFacetChoices();
         RefreshCurrentView();
     }
@@ -196,6 +227,14 @@ public partial class MainViewModel : ObservableObject
 
     private void OnTagFacetSelectionChanged()
     {
+        // The tag list means nothing inside the roadmap screens; picking a tag there means
+        // "show me those questions", so leave the roadmap area for the filtered question list.
+        if (CurrentSidebarView == SidebarView.Roadmaps)
+        {
+            CurrentSidebarView = SidebarView.AllQuestions;
+            SelectedRoadmap = null;
+        }
+
         // Changing the tag filter while a question is open is a clear signal to go back
         // to the (now re-filtered) list rather than keep looking at the open question.
         if (SelectedQuestion is not null)
@@ -246,6 +285,7 @@ public partial class MainViewModel : ObservableObject
     {
         SelectedQuestion = null;
         IsNotesOpen = false;
+        SelectedRoadmap = null;
         CurrentSidebarView = SidebarView.AllQuestions;
         DrillLevel = DrillLevel.Types;
         SelectedType = null;
@@ -261,6 +301,7 @@ public partial class MainViewModel : ObservableObject
     {
         SelectedQuestion = null;
         IsNotesOpen = false;
+        SelectedRoadmap = null;
         CurrentSidebarView = SidebarView.Favorites;
         NotifyDrillVisibilityChanged();
         RefreshCurrentView();
@@ -271,10 +312,139 @@ public partial class MainViewModel : ObservableObject
     {
         SelectedQuestion = null;
         IsNotesOpen = false;
+        SelectedRoadmap = null;
         CurrentSidebarView = SidebarView.RecentlyViewed;
         NotifyDrillVisibilityChanged();
         RefreshCurrentView();
     }
+
+    [RelayCommand]
+    private void ShowRoadmaps()
+    {
+        SelectedQuestion = null;
+        IsNotesOpen = false;
+        SelectedRoadmap = null;
+        CurrentSidebarView = SidebarView.Roadmaps;
+        NotifyDrillVisibilityChanged();
+    }
+
+    [RelayCommand]
+    private void OpenRoadmap(RoadmapTileViewModel tile)
+    {
+        SelectedRoadmap = tile;
+        BuildRoadmapSteps();
+    }
+
+    [RelayCommand]
+    private void BackToRoadmaps()
+    {
+        SelectedRoadmap = null;
+    }
+
+    [RelayCommand]
+    private async Task OpenRoadmapQuestionAsync(RoadmapStepViewModel step) => await OpenQuestionByIdAsync(step.QuestionId);
+
+    private void RebuildRoadmaps()
+    {
+        var previouslyOpen = SelectedRoadmap?.Id;
+        var existingQuestionIds = _allQuestions.Select(q => q.Id).ToHashSet();
+
+        RoadmapTiles.Clear();
+        foreach (var roadmap in _allRoadmaps)
+        {
+            RoadmapTiles.Add(new RoadmapTileViewModel(
+                roadmap,
+                CountExistingSteps(roadmap, existingQuestionIds),
+                CountStudied(roadmap, existingQuestionIds)));
+        }
+
+        SelectedRoadmap = previouslyOpen is { } id ? RoadmapTiles.FirstOrDefault(t => t.Id == id) : null;
+        BuildRoadmapSteps();
+    }
+
+    // Steps pointing at a question that no longer exists are skipped: not shown and not counted.
+    private static int CountExistingSteps(Roadmap roadmap, HashSet<Guid> existingQuestionIds) =>
+        roadmap.Steps.Count(s => existingQuestionIds.Contains(s.QuestionId));
+
+    private int CountStudied(Roadmap roadmap, HashSet<Guid> existingQuestionIds) =>
+        roadmap.Steps.Count(s => existingQuestionIds.Contains(s.QuestionId) && _studied.Contains((roadmap.Id, s.QuestionId)));
+
+    private void BuildRoadmapSteps()
+    {
+        RoadmapSteps.Clear();
+
+        if (SelectedRoadmap is not { } tile)
+        {
+            SelectedRoadmapProgressText = string.Empty;
+            return;
+        }
+
+        var questionLookup = _allQuestions.ToDictionary(q => q.Id);
+        var categoryLookup = _allCategories.ToDictionary(c => c.Id, c => c.Name);
+        var tagLookup = _allTags.ToDictionary(t => t.Id, t => t.Name);
+
+        string? previousStage = null;
+        var position = 0;
+
+        foreach (var step in tile.Roadmap.Steps)
+        {
+            if (!questionLookup.TryGetValue(step.QuestionId, out var question))
+            {
+                continue;
+            }
+
+            position++;
+
+            var stage = string.IsNullOrWhiteSpace(step.Stage) ? null : step.Stage.Trim();
+            var header = stage is not null && stage != previousStage ? stage : null;
+            previousStage = stage;
+
+            var categoryChips = string.Join(" · ", question.CategoryIds
+                .Where(categoryLookup.ContainsKey)
+                .Select(id => categoryLookup[id]));
+            var levelLabel = string.Join(", ", question.TagIds
+                .Where(tagLookup.ContainsKey)
+                .Select(id => tagLookup[id])
+                .Where(name => LevelTagPattern.IsMatch(name)));
+
+            RoadmapSteps.Add(new RoadmapStepViewModel(
+                position,
+                question,
+                header,
+                categoryChips,
+                levelLabel,
+                _studied.Contains((tile.Id, question.Id)),
+                OnRoadmapStepStudiedChanged));
+        }
+
+        SelectedRoadmapProgressText = tile.ProgressText;
+    }
+
+    private void OnRoadmapStepStudiedChanged(RoadmapStepViewModel step, bool studied)
+    {
+        if (SelectedRoadmap is not { } tile)
+        {
+            return;
+        }
+
+        var key = (tile.Id, step.QuestionId);
+        if (studied)
+        {
+            _studied.Add(key);
+        }
+        else
+        {
+            _studied.Remove(key);
+        }
+
+        var existingQuestionIds = _allQuestions.Select(q => q.Id).ToHashSet();
+        tile.UpdateStudied(CountStudied(tile.Roadmap, existingQuestionIds));
+        SelectedRoadmapProgressText = tile.ProgressText;
+
+        _ = _roadmapRepository.SetStudiedAsync(tile.Id, step.QuestionId, studied);
+    }
+
+    partial void OnSelectedRoadmapChanged(RoadmapTileViewModel? value) => NotifyDrillVisibilityChanged();
 
     [RelayCommand]
     private void SelectType(QuestionType type)
@@ -341,6 +511,8 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowTypeTiles));
         OnPropertyChanged(nameof(ShowCategoryTiles));
         OnPropertyChanged(nameof(ShowQuestionList));
+        OnPropertyChanged(nameof(ShowRoadmapList));
+        OnPropertyChanged(nameof(ShowRoadmapDetail));
         OnPropertyChanged(nameof(ShowBreadcrumb));
         OnPropertyChanged(nameof(BreadcrumbText));
     }
