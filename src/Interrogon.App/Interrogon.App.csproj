@@ -16,7 +16,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <Version>0.1.0</Version>
+    <Version>0.1.2</Version>
     <Product>Interrogon</Product>
     <Company>Andreas Gkesos</Company>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
