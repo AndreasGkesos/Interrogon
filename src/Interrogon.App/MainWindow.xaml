@@ -61,6 +61,12 @@
                 <CheckBox Content="{x:Bind Name}" IsChecked="{x:Bind IsSelected, Mode=TwoWay}" Margin="0,2" />
             </DataTemplate>
 
+            <Style x:Key="TagFacetListViewItemStyle" TargetType="ListViewItem">
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+
             <DataTemplate x:Key="TagFacetChoiceTemplate" x:DataType="vm:TagChoiceViewModel">
                 <CheckBox Content="{x:Bind DisplayText}" IsChecked="{x:Bind IsSelected, Mode=TwoWay}" Margin="0,2" />
             </DataTemplate>
@@ -82,7 +88,7 @@
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="270" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -127,11 +133,19 @@
                     </Button>
 
                     <TextBlock Text="Tags" Margin="10,16,0,4" Style="{ThemeResource CaptionTextBlockStyle}" Opacity="0.7" />
+                    <TextBox x:Name="TagSearchBox"
+                             PlaceholderText="Filter tags..."
+                             Margin="2,0,2,4"
+                             Text="{x:Bind ViewModel.TagSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
-                <ScrollViewer Grid.Row="1" Margin="8,0">
-                    <ItemsControl x:Name="TagFacetItemsControl" ItemTemplate="{StaticResource TagFacetChoiceTemplate}" />
-                </ScrollViewer>
+                <!-- ListView (not ItemsControl) so rows are virtualized: only visible tags get checkbox controls. -->
+                <ListView x:Name="TagFacetItemsControl"
+                          Grid.Row="1"
+                          Margin="8,0"
+                          SelectionMode="None"
+                          ItemTemplate="{StaticResource TagFacetChoiceTemplate}"
+                          ItemContainerStyle="{StaticResource TagFacetListViewItemStyle}" />
 
                 <Button Grid.Row="2"
                         HorizontalAlignment="Stretch"

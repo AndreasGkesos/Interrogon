@@ -11,7 +11,7 @@ It's a learning/portfolio project, not a finished product.
 | Feature | Description |
 |---|---|
 | Drill-down browsing | Home screen shows the five question types as tiles; clicking one shows the categories present within it, clicking a category shows the matching questions — each level's tile counts reflect what's actually reachable |
-| Tag facets | Sidebar lists every tag in the current scope with usage counts, sorted by frequency; selecting multiple tags narrows with AND semantics (a question must carry all selected tags), and the tag list itself re-scopes to only tags still co-occurring with the current selection |
+| Tag facets | Sidebar lists every tag in the current scope with usage counts, sorted by frequency; selecting multiple tags narrows with AND semantics (a question must carry all selected tags), and the tag list itself re-scopes to only tags still co-occurring with the current selection; a filter box above the list narrows it as you type (case-insensitive, matches anywhere in the tag name), and the list is virtualized so it stays responsive with hundreds of tags |
 | Search | A dedicated search dialog (opened from the sidebar) searches title, answer, and notes across the whole database; supports an exact-match toggle for whole-word matching, and inline autocomplete that completes the word you're typing if any question title contains it |
 | Question detail view | Full markdown rendering with syntax-highlighted, copyable code blocks; adjustable text size (two zoom steps up from default); tags shown under the title; a Notes side panel for private annotations separate from the answer |
 | Favorites & Recently Viewed | Star any question to pin it in Favorites; every opened question is tracked in Recently Viewed automatically |

@@ -39,7 +39,7 @@ public sealed partial class MainWindow : Window
         TypeTilesItemsControl.ItemsSource = ViewModel.TypeTiles;
         CategoryTilesItemsControl.ItemsSource = ViewModel.CategoryTiles;
         QuestionListItemsControl.ItemsSource = ViewModel.QuestionList;
-        TagFacetItemsControl.ItemsSource = ViewModel.TagFacetChoices;
+        TagFacetItemsControl.ItemsSource = ViewModel.VisibleTagFacetChoices;
 
         EditTypeComboBox.ItemsSource = QuestionTypeDisplay.All.Select(QuestionTypeDisplay.GetLabel).ToList();
 

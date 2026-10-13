@@ -58,6 +58,9 @@ public partial class MainViewModel : ObservableObject
     private string _searchText = string.Empty;
 
     [ObservableProperty]
+    private string _tagSearchText = string.Empty;
+
+    [ObservableProperty]
     private Question? _selectedQuestion;
 
     [ObservableProperty]
@@ -73,6 +76,12 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<CategoryTileViewModel> CategoryTiles { get; } = [];
     public ObservableCollection<QuestionListItemViewModel> QuestionList { get; } = [];
     public ObservableCollection<TagChoiceViewModel> TagFacetChoices { get; } = [];
+
+    /// <summary>
+    /// The subset of <see cref="TagFacetChoices"/> whose name matches <see cref="TagSearchText"/>; this is
+    /// what the sidebar displays. Display-only: question filtering always uses the full TagFacetChoices.
+    /// </summary>
+    public ObservableCollection<TagChoiceViewModel> VisibleTagFacetChoices { get; } = [];
 
     public bool ShowTypeTiles => DrillLevel == DrillLevel.Types && CurrentSidebarView == SidebarView.AllQuestions;
     public bool ShowCategoryTiles => DrillLevel == DrillLevel.Categories && CurrentSidebarView == SidebarView.AllQuestions;
@@ -150,6 +159,38 @@ public partial class MainViewModel : ObservableObject
                 }
             };
             TagFacetChoices.Add(choice);
+        }
+
+        RefreshVisibleTagChoices();
+    }
+
+    partial void OnTagSearchTextChanged(string value) => RefreshVisibleTagChoices();
+
+    private void RefreshVisibleTagChoices()
+    {
+        var needle = TagSearchText.Trim();
+
+        var wanted = TagFacetChoices
+            .Where(c => needle.Length == 0 || c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var wantedSet = wanted.ToHashSet();
+
+        // Update in place rather than Clear + re-Add: each change to the collection costs the UI
+        // layout work, so only touching what actually changed keeps typing responsive.
+        for (var i = VisibleTagFacetChoices.Count - 1; i >= 0; i--)
+        {
+            if (!wantedSet.Contains(VisibleTagFacetChoices[i]))
+            {
+                VisibleTagFacetChoices.RemoveAt(i);
+            }
+        }
+
+        for (var i = 0; i < wanted.Count; i++)
+        {
+            if (i >= VisibleTagFacetChoices.Count || !ReferenceEquals(VisibleTagFacetChoices[i], wanted[i]))
+            {
+                VisibleTagFacetChoices.Insert(i, wanted[i]);
+            }
         }
     }
 
